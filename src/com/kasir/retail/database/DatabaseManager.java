@@ -14,7 +14,11 @@ public class DatabaseManager {
     }
 
     public static Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(DB_URL);
+        Connection conn = DriverManager.getConnection(DB_URL);
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute("PRAGMA foreign_keys = ON;");
+        }
+        return conn;
     }
 
     public static void initializeDatabase() {
@@ -56,6 +60,14 @@ public class DatabaseManager {
                     "FOREIGN KEY (product_id) REFERENCES products(id)" +
                     ")");
 
+            stmt.execute("CREATE TABLE IF NOT EXISTS users (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "username TEXT NOT NULL UNIQUE, " +
+                    "password TEXT NOT NULL, " +
+                    "role TEXT NOT NULL DEFAULT 'KASIR', " +
+                    "full_name TEXT NOT NULL" +
+                    ")");
+
             seedData(conn);
 
         } catch (SQLException e) {
@@ -65,6 +77,16 @@ public class DatabaseManager {
 
     private static void seedData(Connection conn) throws SQLException {
         Statement stmt = conn.createStatement();
+
+        ResultSet rsUsers = stmt.executeQuery("SELECT COUNT(*) FROM users");
+        rsUsers.next();
+        if (rsUsers.getInt(1) == 0) {
+            stmt.execute("INSERT INTO users (username, password, role, full_name) " +
+                    "VALUES ('admin', 'admin123', 'ADMIN', 'Administrator')");
+            stmt.execute("INSERT INTO users (username, password, role, full_name) " +
+                    "VALUES ('kasir', 'kasir123', 'KASIR', 'Kasir Toko')");
+        }
+
         ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM categories");
         rs.next();
         if (rs.getInt(1) == 0) {

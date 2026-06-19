@@ -3,7 +3,7 @@ package com.kasir.retail.gui;
 import com.kasir.retail.model.Category;
 import com.kasir.retail.service.KasirService;
 import javax.swing.*;
-import javax.swing.border.TitledBorder;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.sql.SQLException;
@@ -14,13 +14,11 @@ public class CategoryPanel extends JPanel {
     private JTable table;
     private DefaultTableModel model;
 
-    private final Color PRIMARY = new Color(41, 128, 185);
-
     public CategoryPanel(KasirService service) {
         this.service = service;
         setLayout(new BorderLayout(10, 10));
-        setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        setBackground(Color.WHITE);
+        setBorder(ThemeManager.PADDING);
+        setBackground(ThemeManager.BG);
 
         add(createToolbar(), BorderLayout.NORTH);
         add(createTablePanel(), BorderLayout.CENTER);
@@ -29,32 +27,38 @@ public class CategoryPanel extends JPanel {
     }
 
     private JPanel createToolbar() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createTitledBorder(
-            BorderFactory.createLineBorder(new Color(200, 200, 200)),
-            "Kelola Kategori", TitledBorder.LEFT, TitledBorder.TOP,
-            new Font("Segoe UI", Font.BOLD, 14)));
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(ThemeManager.CARD_BG);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(ThemeManager.BORDER, 1, true),
+                BorderFactory.createEmptyBorder(15, 20, 15, 20)
+        ));
 
-        JButton btnAdd = new JButton("Tambah");
-        styleButton(btnAdd, new Color(46, 204, 113));
+        JLabel title = new JLabel("Manajemen Kategori");
+        title.setFont(ThemeManager.FONT_TITLE);
+        title.setForeground(ThemeManager.TEXT);
+
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 5));
+        btnPanel.setBackground(ThemeManager.CARD_BG);
+
+        JButton btnAdd = ThemeManager.createButton("Tambah", ThemeManager.SUCCESS);
         btnAdd.addActionListener(e -> addCategory());
-        panel.add(btnAdd);
+        btnPanel.add(btnAdd);
 
-        JButton btnEdit = new JButton("Edit");
-        styleButton(btnEdit, new Color(52, 152, 219));
+        JButton btnEdit = ThemeManager.createButton("Edit", ThemeManager.INFO);
         btnEdit.addActionListener(e -> editCategory());
-        panel.add(btnEdit);
+        btnPanel.add(btnEdit);
 
-        JButton btnDelete = new JButton("Hapus");
-        styleButton(btnDelete, new Color(231, 76, 60));
+        JButton btnDelete = ThemeManager.createButton("Hapus", ThemeManager.DANGER);
         btnDelete.addActionListener(e -> deleteCategory());
-        panel.add(btnDelete);
+        btnPanel.add(btnDelete);
 
-        JButton btnRefresh = new JButton("Refresh");
-        styleButton(btnRefresh, new Color(149, 165, 166));
+        JButton btnRefresh = ThemeManager.createButton("Refresh", ThemeManager.TEXT_SUBTLE);
         btnRefresh.addActionListener(e -> refresh());
-        panel.add(btnRefresh);
+        btnPanel.add(btnRefresh);
+
+        panel.add(title, BorderLayout.NORTH);
+        panel.add(btnPanel, BorderLayout.CENTER);
 
         return panel;
     }
@@ -65,24 +69,26 @@ public class CategoryPanel extends JPanel {
             public boolean isCellEditable(int r, int c) { return false; }
         };
         table = new JTable(model);
-        table.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        table.setRowHeight(30);
-        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
-        table.getTableHeader().setBackground(PRIMARY);
-        table.getTableHeader().setForeground(Color.WHITE);
-        table.setSelectionBackground(new Color(41, 128, 185, 80));
+        ThemeManager.styleTable(table);
 
-        table.getColumnModel().getColumn(0).setPreferredWidth(50);
-        table.getColumnModel().getColumn(1).setPreferredWidth(300);
+        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+        centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        table.getColumnModel().getColumn(0).setPreferredWidth(80);
+        table.getColumnModel().getColumn(0).setCellRenderer(centerRenderer);
+        table.getColumnModel().getColumn(1).setPreferredWidth(400);
 
-        return new JScrollPane(table);
-    }
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(ThemeManager.CARD_BG);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(ThemeManager.BORDER, 1, true),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
 
-    private void styleButton(JButton btn, Color bg) {
-        btn.setBackground(bg);
-        btn.setFocusPainted(false);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btn.setPreferredSize(new Dimension(90, 30));
+        JScrollPane scroll = new JScrollPane(table);
+        scroll.getViewport().setBackground(ThemeManager.CARD_BG);
+        card.add(scroll, BorderLayout.CENTER);
+
+        return scroll;
     }
 
     public void refresh() {
@@ -142,8 +148,17 @@ public class CategoryPanel extends JPanel {
                 int id = Integer.parseInt(model.getValueAt(row, 0).toString());
                 service.deleteCategory(id);
                 refresh();
+                JOptionPane.showMessageDialog(this, "Kategori berhasil dihapus!");
             } catch (SQLException e) {
-                JOptionPane.showMessageDialog(this, "Error: " + e.getMessage());
+                String msg = e.getMessage().toLowerCase();
+                if (msg.contains("constraint") || msg.contains("foreign key")) {
+                    JOptionPane.showMessageDialog(this,
+                        "Kategori tidak dapat dihapus karena masih digunakan oleh beberapa produk.\n" +
+                        "Silakan ubah atau hapus produk yang terkait dengan kategori ini terlebih dahulu.",
+                        "Gagal Menghapus Kategori", JOptionPane.WARNING_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(this, "Error: " + e.getMessage());
+                }
             }
         }
     }

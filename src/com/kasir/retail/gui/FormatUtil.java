@@ -19,7 +19,7 @@ public class FormatUtil {
     }
 
     public static String formatRupiah(double value) {
-        NumberFormat nf = NumberFormat.getInstance(new Locale("id", "ID"));
+        NumberFormat nf = NumberFormat.getInstance(new java.util.Locale.Builder().setLanguage("id").setRegion("ID").build());
         return "Rp" + nf.format(value);
     }
 }

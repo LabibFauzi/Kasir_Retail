@@ -56,6 +56,10 @@ public class KasirService {
         return productDAO.search(keyword);
     }
 
+    public List<Product> getProductsByCategory(int categoryId) throws SQLException {
+        return productDAO.getByCategory(categoryId);
+    }
+
     public Product getProductById(int id) throws SQLException {
         return productDAO.getById(id);
     }
@@ -69,6 +73,17 @@ public class KasirService {
         productDAO.insert(p);
     }
 
+    public String generateNextProductCode() throws SQLException {
+        String maxCode = productDAO.getMaxCode();
+        if (maxCode == null || maxCode.isEmpty()) return "P001";
+        String numPart = maxCode.replaceAll("[^0-9]", "");
+        if (numPart.isEmpty()) return maxCode + "1";
+        int num = Integer.parseInt(numPart) + 1;
+        String fmt = "%0" + numPart.length() + "d";
+        String prefix = maxCode.substring(0, maxCode.length() - numPart.length());
+        return prefix + String.format(fmt, num);
+    }
+
     public void updateProduct(int id, String code, String name, int categoryId, double price, int stock) throws SQLException {
         Product p = new Product(id, code, name, categoryId, price, stock);
         productDAO.update(p);
@@ -79,6 +94,19 @@ public class KasirService {
     }
 
     // Cart operations
+    public void updateCartQuantity(int index, int newQty) throws Exception {
+        if (index < 0 || index >= cart.size()) return;
+        CartItem item = cart.get(index);
+        if (newQty <= 0) {
+            cart.remove(index);
+            return;
+        }
+        if (item.getProduct().getStock() < newQty) {
+            throw new Exception("Stok tidak mencukupi! Stok tersedia: " + item.getProduct().getStock());
+        }
+        item.setQuantity(newQty);
+    }
+
     public void addToCart(String code, int quantity) throws Exception {
         Product product = productDAO.getByCode(code);
         if (product == null) {

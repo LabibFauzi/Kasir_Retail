@@ -4,11 +4,16 @@ import com.kasir.retail.model.Transaction;
 import com.kasir.retail.model.TransactionItem;
 import com.kasir.retail.service.KasirService;
 import javax.swing.*;
-import javax.swing.border.TitledBorder;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.print.Printable;
+import java.awt.print.PrinterException;
+import java.awt.print.PrinterJob;
 import java.sql.SQLException;
 import java.util.List;
+import javax.print.PrintService;
+import javax.print.PrintServiceLookup;
 
 public class ReportPanel extends JPanel {
     private final KasirService service;
@@ -17,13 +22,11 @@ public class ReportPanel extends JPanel {
     private JLabel dailyTotalLabel;
     private JTextArea detailArea;
 
-    private final Color PRIMARY = new Color(41, 128, 185);
-
     public ReportPanel(KasirService service) {
         this.service = service;
         setLayout(new BorderLayout(10, 10));
-        setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        setBackground(Color.WHITE);
+        setBorder(ThemeManager.PADDING);
+        setBackground(ThemeManager.BG);
 
         add(createTopPanel(), BorderLayout.NORTH);
         add(createCenterPanel(), BorderLayout.CENTER);
@@ -31,42 +34,38 @@ public class ReportPanel extends JPanel {
 
     private JPanel createTopPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createTitledBorder(
-            BorderFactory.createLineBorder(new Color(200, 200, 200)),
-            "Ringkasan", TitledBorder.LEFT, TitledBorder.TOP,
-            new Font("Segoe UI", Font.BOLD, 14)));
+        panel.setBackground(ThemeManager.BG);
 
-        JPanel infoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 10));
-        infoPanel.setBackground(Color.WHITE);
+        JLabel title = new JLabel("Laporan Penjualan");
+        title.setFont(ThemeManager.FONT_TITLE);
+        title.setForeground(ThemeManager.TEXT);
+        title.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
+
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(ThemeManager.CARD_BG);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(ThemeManager.BORDER, 1, true),
+                BorderFactory.createEmptyBorder(15, 20, 15, 20)
+        ));
+
+        JLabel lblDaily = new JLabel("Total Penjualan Hari Ini");
+        lblDaily.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblDaily.setForeground(ThemeManager.TEXT_SUBTLE);
 
         dailyTotalLabel = new JLabel("Rp0");
-        dailyTotalLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        dailyTotalLabel.setForeground(new Color(231, 76, 60));
+        dailyTotalLabel.setFont(new Font("Segoe UI", Font.BOLD, 28));
+        dailyTotalLabel.setForeground(ThemeManager.PRIMARY);
 
         JPanel dailyPanel = new JPanel(new BorderLayout());
-        dailyPanel.setBackground(Color.WHITE);
-        JLabel lblDaily = new JLabel("Total Penjualan Hari Ini");
-        lblDaily.setForeground(Color.BLACK);
+        dailyPanel.setBackground(ThemeManager.CARD_BG);
         dailyPanel.add(lblDaily, BorderLayout.NORTH);
         dailyPanel.add(dailyTotalLabel, BorderLayout.CENTER);
-        infoPanel.add(dailyPanel);
 
-        JButton btnRefresh = new JButton("Refresh");
-        btnRefresh.setBackground(PRIMARY);
-        btnRefresh.setFocusPainted(false);
-        btnRefresh.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnRefresh.addActionListener(e -> refresh());
-        infoPanel.add(btnRefresh);
+        card.add(dailyPanel, BorderLayout.WEST);
 
-        JButton btnDetail = new JButton("Lihat Detail");
-        btnDetail.setBackground(new Color(46, 204, 113));
-        btnDetail.setFocusPainted(false);
-        btnDetail.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnDetail.addActionListener(e -> showDetail());
-        infoPanel.add(btnDetail);
+        panel.add(title, BorderLayout.NORTH);
+        panel.add(card, BorderLayout.CENTER);
 
-        panel.add(infoPanel, BorderLayout.CENTER);
         return panel;
     }
 
@@ -74,46 +73,88 @@ public class ReportPanel extends JPanel {
         JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
         split.setResizeWeight(0.5);
         split.setDividerLocation(550);
+        split.setBorder(null);
+        split.setBackground(ThemeManager.BG);
 
         String[] cols = {"ID", "Invoice", "Tanggal", "Total", "Bayar", "Kembali"};
         model = new DefaultTableModel(cols, 0) {
             public boolean isCellEditable(int r, int c) { return false; }
         };
         table = new JTable(model);
-        table.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        table.setRowHeight(28);
-        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
-        table.getTableHeader().setBackground(PRIMARY);
-        table.getTableHeader().setForeground(Color.WHITE);
-        table.setSelectionBackground(new Color(41, 128, 185, 80));
+        ThemeManager.styleTable(table);
 
+        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+        centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
         table.getColumnModel().getColumn(0).setPreferredWidth(30);
+        table.getColumnModel().getColumn(0).setCellRenderer(centerRenderer);
         table.getColumnModel().getColumn(1).setPreferredWidth(130);
+        table.getColumnModel().getColumn(1).setCellRenderer(centerRenderer);
         table.getColumnModel().getColumn(2).setPreferredWidth(160);
-        table.getColumnModel().getColumn(3).setPreferredWidth(90);
-        table.getColumnModel().getColumn(4).setPreferredWidth(90);
-        table.getColumnModel().getColumn(5).setPreferredWidth(90);
+        table.getColumnModel().getColumn(3).setPreferredWidth(100);
+
+        DefaultTableCellRenderer rightRenderer = new DefaultTableCellRenderer();
+        rightRenderer.setHorizontalAlignment(SwingConstants.RIGHT);
+        table.getColumnModel().getColumn(3).setCellRenderer(rightRenderer);
+        table.getColumnModel().getColumn(4).setPreferredWidth(100);
+        table.getColumnModel().getColumn(4).setCellRenderer(rightRenderer);
+        table.getColumnModel().getColumn(5).setPreferredWidth(100);
+        table.getColumnModel().getColumn(5).setCellRenderer(rightRenderer);
 
         JScrollPane scrollTable = new JScrollPane(table);
-        scrollTable.setBorder(BorderFactory.createTitledBorder(
-            BorderFactory.createLineBorder(new Color(200, 200, 200)),
-            "Riwayat Transaksi", TitledBorder.LEFT, TitledBorder.TOP,
-            new Font("Segoe UI", Font.BOLD, 13)));
-        split.setLeftComponent(scrollTable);
+        scrollTable.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(ThemeManager.BORDER, 1, true),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
+        scrollTable.getViewport().setBackground(ThemeManager.CARD_BG);
+
+        JPanel leftCard = new JPanel(new BorderLayout());
+        leftCard.setBackground(ThemeManager.CARD_BG);
+        leftCard.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(ThemeManager.BORDER, 1, true),
+                BorderFactory.createEmptyBorder(12, 10, 10, 10)
+        ));
+        JLabel leftTitle = new JLabel("Riwayat Transaksi");
+        leftTitle.setFont(ThemeManager.FONT_SUBTITLE);
+        leftTitle.setForeground(ThemeManager.TEXT);
+        leftTitle.setBorder(BorderFactory.createEmptyBorder(0, 5, 8, 0));
+        leftCard.add(leftTitle, BorderLayout.NORTH);
+        leftCard.add(scrollTable, BorderLayout.CENTER);
+        split.setLeftComponent(leftCard);
 
         detailArea = new JTextArea();
         detailArea.setFont(new Font("Consolas", Font.PLAIN, 13));
         detailArea.setEditable(false);
-        detailArea.setBackground(Color.WHITE);
-        detailArea.setForeground(Color.BLACK);
-        detailArea.setMargin(new Insets(10, 10, 10, 10));
+        detailArea.setBackground(ThemeManager.CARD_BG);
+        detailArea.setForeground(ThemeManager.TEXT);
+        detailArea.setMargin(new Insets(15, 15, 15, 15));
+        detailArea.setCaretColor(ThemeManager.TEXT);
 
         JScrollPane scrollDetail = new JScrollPane(detailArea);
-        scrollDetail.setBorder(BorderFactory.createTitledBorder(
-            BorderFactory.createLineBorder(new Color(200, 200, 200)),
-            "Detail Transaksi", TitledBorder.LEFT, TitledBorder.TOP,
-            new Font("Segoe UI", Font.BOLD, 13)));
-        split.setRightComponent(scrollDetail);
+        scrollDetail.getViewport().setBackground(ThemeManager.CARD_BG);
+
+        JPanel rightCard = new JPanel(new BorderLayout());
+        rightCard.setBackground(ThemeManager.CARD_BG);
+        rightCard.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(ThemeManager.BORDER, 1, true),
+                BorderFactory.createEmptyBorder(12, 10, 10, 10)
+        ));
+
+        JPanel rightHeader = new JPanel(new BorderLayout());
+        rightHeader.setBackground(ThemeManager.CARD_BG);
+        rightHeader.setBorder(BorderFactory.createEmptyBorder(0, 5, 8, 0));
+        JLabel rightTitle = new JLabel("Detail Transaksi");
+        rightTitle.setFont(ThemeManager.FONT_SUBTITLE);
+        rightTitle.setForeground(ThemeManager.TEXT);
+        rightHeader.add(rightTitle, BorderLayout.WEST);
+
+        JButton btnSavePdf = ThemeManager.createButton("Cetak PDF", ThemeManager.PRIMARY);
+        btnSavePdf.setPreferredSize(new Dimension(110, 30));
+        btnSavePdf.addActionListener(e -> saveDetailAsPdf());
+        rightHeader.add(btnSavePdf, BorderLayout.EAST);
+
+        rightCard.add(rightHeader, BorderLayout.NORTH);
+        rightCard.add(scrollDetail, BorderLayout.CENTER);
+        split.setRightComponent(rightCard);
 
         table.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
@@ -122,6 +163,7 @@ public class ReportPanel extends JPanel {
         });
 
         JPanel center = new JPanel(new BorderLayout());
+        center.setBackground(ThemeManager.BG);
         center.add(split, BorderLayout.CENTER);
         return center;
     }
@@ -180,5 +222,67 @@ public class ReportPanel extends JPanel {
         } catch (SQLException e) {
             detailArea.setText("Error: " + e.getMessage());
         }
+    }
+
+    private void saveDetailAsPdf() {
+        String text = detailArea.getText();
+        if (text.isEmpty() || text.startsWith("Pilih transaksi")) {
+            JOptionPane.showMessageDialog(this, "Tidak ada detail untuk dicetak!");
+            return;
+        }
+
+        String[] lines = text.split("\n");
+
+        PrinterJob job = PrinterJob.getPrinterJob();
+        job.setJobName("Detail Transaksi");
+
+        job.setPrintable((graphics, pageFormat, pageIndex) -> {
+            if (pageIndex > 0) return Printable.NO_SUCH_PAGE;
+            Graphics2D g2 = (Graphics2D) graphics;
+            g2.translate(pageFormat.getImageableX(), pageFormat.getImageableY());
+            g2.setFont(new Font("Consolas", Font.PLAIN, 9));
+            FontMetrics fm = g2.getFontMetrics();
+            int lineH = fm.getHeight();
+            int y = 10;
+            g2.setColor(Color.BLACK);
+            for (String line : lines) {
+                g2.drawString(line, 10, y);
+                y += lineH;
+            }
+            return Printable.PAGE_EXISTS;
+        });
+
+        PrintService pdfService = findPDFPrinter();
+        if (pdfService != null) {
+            try {
+                job.setPrintService(pdfService);
+                job.print();
+                ToastNotification.showSuccess(this, "PDF tersimpan (via " + pdfService.getName() + ")");
+                return;
+            } catch (PrinterException e) {
+                // fall through to dialog
+            }
+        }
+
+        boolean doPrint = job.printDialog();
+        if (doPrint) {
+            try {
+                job.print();
+                ToastNotification.showSuccess(this, "Detail berhasil dicetak");
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Gagal mencetak: " + ex.getMessage());
+            }
+        }
+    }
+
+    private PrintService findPDFPrinter() {
+        PrintService[] services = PrintServiceLookup.lookupPrintServices(null, null);
+        for (PrintService ps : services) {
+            String name = ps.getName().toLowerCase();
+            if (name.contains("pdf") || name.contains("print to pdf")) {
+                return ps;
+            }
+        }
+        return null;
     }
 }

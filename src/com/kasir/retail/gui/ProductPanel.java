@@ -4,7 +4,7 @@ import com.kasir.retail.model.Category;
 import com.kasir.retail.model.Product;
 import com.kasir.retail.service.KasirService;
 import javax.swing.*;
-import javax.swing.border.TitledBorder;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.sql.SQLException;
@@ -17,45 +17,45 @@ public class ProductPanel extends JPanel {
     private JTable table;
     private DefaultTableModel model;
 
-    private final Color PRIMARY = new Color(41, 128, 185);
-
     public ProductPanel(KasirService service) {
         this.service = service;
         setLayout(new BorderLayout(10, 10));
-        setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        setBackground(Color.WHITE);
+        setBorder(ThemeManager.PADDING);
+        setBackground(ThemeManager.BG);
 
         add(createToolbar(), BorderLayout.NORTH);
         add(createTablePanel(), BorderLayout.CENTER);
     }
 
     private JPanel createToolbar() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createTitledBorder(
-            BorderFactory.createLineBorder(new Color(200, 200, 200)),
-            "Kelola Produk", TitledBorder.LEFT, TitledBorder.TOP,
-            new Font("Segoe UI", Font.BOLD, 14)));
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(ThemeManager.CARD_BG);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(ThemeManager.BORDER, 1, true),
+                BorderFactory.createEmptyBorder(15, 20, 15, 20)
+        ));
 
-        JButton btnAdd = new JButton("Tambah");
-        styleButton(btnAdd, new Color(46, 204, 113));
+        JLabel title = new JLabel("Manajemen Produk");
+        title.setFont(ThemeManager.FONT_TITLE);
+        title.setForeground(ThemeManager.TEXT);
+
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 5));
+        btnPanel.setBackground(ThemeManager.CARD_BG);
+
+        JButton btnAdd = ThemeManager.createButton("Tambah", ThemeManager.SUCCESS);
         btnAdd.addActionListener(e -> addProduct());
-        panel.add(btnAdd);
+        btnPanel.add(btnAdd);
 
-        JButton btnEdit = new JButton("Edit");
-        styleButton(btnEdit, new Color(52, 152, 219));
+        JButton btnEdit = ThemeManager.createButton("Edit", ThemeManager.INFO);
         btnEdit.addActionListener(e -> editProduct());
-        panel.add(btnEdit);
+        btnPanel.add(btnEdit);
 
-        JButton btnDelete = new JButton("Hapus");
-        styleButton(btnDelete, new Color(231, 76, 60));
+        JButton btnDelete = ThemeManager.createButton("Hapus", ThemeManager.DANGER);
         btnDelete.addActionListener(e -> deleteProduct());
-        panel.add(btnDelete);
+        btnPanel.add(btnDelete);
 
-        JButton btnRefresh = new JButton("Refresh");
-        styleButton(btnRefresh, new Color(149, 165, 166));
-        btnRefresh.addActionListener(e -> refresh());
-        panel.add(btnRefresh);
+        panel.add(title, BorderLayout.NORTH);
+        panel.add(btnPanel, BorderLayout.CENTER);
 
         return panel;
     }
@@ -66,28 +66,36 @@ public class ProductPanel extends JPanel {
             public boolean isCellEditable(int r, int c) { return false; }
         };
         table = new JTable(model);
-        table.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        table.setRowHeight(28);
-        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
-        table.getTableHeader().setBackground(PRIMARY);
-        table.getTableHeader().setForeground(Color.WHITE);
-        table.setSelectionBackground(new Color(41, 128, 185, 80));
+        ThemeManager.styleTable(table);
 
-        table.getColumnModel().getColumn(0).setPreferredWidth(30);
-        table.getColumnModel().getColumn(1).setPreferredWidth(80);
-        table.getColumnModel().getColumn(2).setPreferredWidth(200);
-        table.getColumnModel().getColumn(3).setPreferredWidth(100);
-        table.getColumnModel().getColumn(4).setPreferredWidth(100);
-        table.getColumnModel().getColumn(5).setPreferredWidth(50);
+        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+        centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        table.getColumnModel().getColumn(0).setPreferredWidth(40);
+        table.getColumnModel().getColumn(0).setCellRenderer(centerRenderer);
+        table.getColumnModel().getColumn(1).setPreferredWidth(90);
+        table.getColumnModel().getColumn(1).setCellRenderer(centerRenderer);
+        table.getColumnModel().getColumn(2).setPreferredWidth(220);
+        table.getColumnModel().getColumn(3).setPreferredWidth(120);
+        table.getColumnModel().getColumn(4).setPreferredWidth(120);
 
-        return new JScrollPane(table);
-    }
+        DefaultTableCellRenderer rightRenderer = new DefaultTableCellRenderer();
+        rightRenderer.setHorizontalAlignment(SwingConstants.RIGHT);
+        table.getColumnModel().getColumn(4).setCellRenderer(rightRenderer);
+        table.getColumnModel().getColumn(5).setPreferredWidth(60);
+        table.getColumnModel().getColumn(5).setCellRenderer(centerRenderer);
 
-    private void styleButton(JButton btn, Color bg) {
-        btn.setBackground(bg);
-        btn.setFocusPainted(false);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btn.setPreferredSize(new Dimension(90, 30));
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(ThemeManager.CARD_BG);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(ThemeManager.BORDER, 1, true),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
+
+        JScrollPane scroll = new JScrollPane(table);
+        scroll.getViewport().setBackground(ThemeManager.CARD_BG);
+        card.add(scroll, BorderLayout.CENTER);
+
+        return scroll;
     }
 
     public void refresh() {
@@ -116,17 +124,35 @@ public class ProductPanel extends JPanel {
 
         loadCategories(catCombo);
 
-        JPanel panel = new JPanel(new GridLayout(5, 2, 5, 5));
-        panel.add(new JLabel("Kode:"));
-        panel.add(codeField);
-        panel.add(new JLabel("Nama:"));
-        panel.add(nameField);
-        panel.add(new JLabel("Kategori:"));
-        panel.add(catCombo);
-        panel.add(new JLabel("Harga:"));
-        panel.add(priceField);
-        panel.add(new JLabel("Stok:"));
-        panel.add(stockField);
+        JPanel panel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(5, 5, 5, 5);
+
+        gbc.gridx = 0; gbc.gridy = 0;
+        panel.add(new JLabel("Kode:"), gbc);
+        gbc.gridx = 1;
+        panel.add(codeField, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 1;
+        panel.add(new JLabel("Nama:"), gbc);
+        gbc.gridx = 1;
+        panel.add(nameField, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 2;
+        panel.add(new JLabel("Kategori:"), gbc);
+        gbc.gridx = 1;
+        panel.add(catCombo, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 3;
+        panel.add(new JLabel("Harga:"), gbc);
+        gbc.gridx = 1;
+        panel.add(priceField, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 4;
+        panel.add(new JLabel("Stok:"), gbc);
+        gbc.gridx = 1;
+        panel.add(stockField, gbc);
 
         int result = JOptionPane.showConfirmDialog(this, panel,
             "Tambah Produk", JOptionPane.OK_CANCEL_OPTION);
@@ -134,16 +160,44 @@ public class ProductPanel extends JPanel {
             try {
                 String code = codeField.getText().trim().toUpperCase();
                 String name = nameField.getText().trim();
+                if (code.isEmpty() || name.isEmpty()) {
+                    throw new Exception("Kode dan Nama produk wajib diisi!");
+                }
+                if (catCombo.getSelectedItem() == null) {
+                    throw new Exception("Pilih kategori produk!");
+                }
                 String catName = catCombo.getSelectedItem().toString();
                 int catId = getCategoryId(catName);
-                double price = parseIndonesianNumber(priceField.getText());
-                int stock = Integer.parseInt(stockField.getText().trim());
+
+                double price;
+                try {
+                    price = parseIndonesianNumber(priceField.getText());
+                } catch (NumberFormatException e) {
+                    throw new Exception("Format harga tidak valid! Harap isi dengan angka.");
+                }
+                if (price < 0) {
+                    throw new Exception("Harga produk tidak boleh negatif!");
+                }
+
+                int stock;
+                try {
+                    stock = Integer.parseInt(stockField.getText().trim());
+                } catch (NumberFormatException e) {
+                    throw new Exception("Format stok tidak valid! Harap isi dengan angka bulat.");
+                }
+                if (stock < 0) {
+                    throw new Exception("Stok produk tidak boleh negatif!");
+                }
 
                 service.addProduct(code, name, catId, price, stock);
                 refresh();
                 JOptionPane.showMessageDialog(this, "Produk berhasil ditambahkan!");
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
+                String msg = ex.getMessage();
+                if (msg != null && msg.toLowerCase().contains("unique constraint failed")) {
+                    msg = "Kode produk '" + codeField.getText().trim().toUpperCase() + "' sudah terdaftar untuk produk lain!";
+                }
+                JOptionPane.showMessageDialog(this, "Error: " + msg, "Gagal Menambahkan Produk", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
@@ -168,30 +222,80 @@ public class ProductPanel extends JPanel {
             loadCategories(catCombo);
             catCombo.setSelectedItem(p.getCategoryName());
 
-            JPanel panel = new JPanel(new GridLayout(5, 2, 5, 5));
-            panel.add(new JLabel("Kode:"));
-            panel.add(codeField);
-            panel.add(new JLabel("Nama:"));
-            panel.add(nameField);
-            panel.add(new JLabel("Kategori:"));
-            panel.add(catCombo);
-            panel.add(new JLabel("Harga:"));
-            panel.add(priceField);
-            panel.add(new JLabel("Stok:"));
-            panel.add(stockField);
+            JPanel panel = new JPanel(new GridBagLayout());
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+            gbc.insets = new Insets(5, 5, 5, 5);
+
+            gbc.gridx = 0; gbc.gridy = 0;
+            panel.add(new JLabel("Kode:"), gbc);
+            gbc.gridx = 1;
+            panel.add(codeField, gbc);
+
+            gbc.gridx = 0; gbc.gridy = 1;
+            panel.add(new JLabel("Nama:"), gbc);
+            gbc.gridx = 1;
+            panel.add(nameField, gbc);
+
+            gbc.gridx = 0; gbc.gridy = 2;
+            panel.add(new JLabel("Kategori:"), gbc);
+            gbc.gridx = 1;
+            panel.add(catCombo, gbc);
+
+            gbc.gridx = 0; gbc.gridy = 3;
+            panel.add(new JLabel("Harga:"), gbc);
+            gbc.gridx = 1;
+            panel.add(priceField, gbc);
+
+            gbc.gridx = 0; gbc.gridy = 4;
+            panel.add(new JLabel("Stok:"), gbc);
+            gbc.gridx = 1;
+            panel.add(stockField, gbc);
 
             int result = JOptionPane.showConfirmDialog(this, panel,
                 "Edit Produk", JOptionPane.OK_CANCEL_OPTION);
             if (result == JOptionPane.OK_OPTION) {
-                String code = codeField.getText().trim().toUpperCase();
-                String name = nameField.getText().trim();
-                int catId = getCategoryId(catCombo.getSelectedItem().toString());
-                double price = parseIndonesianNumber(priceField.getText());
-                int stock = Integer.parseInt(stockField.getText().trim());
+                try {
+                    String code = codeField.getText().trim().toUpperCase();
+                    String name = nameField.getText().trim();
+                    if (code.isEmpty() || name.isEmpty()) {
+                        throw new Exception("Kode dan Nama produk wajib diisi!");
+                    }
+                    if (catCombo.getSelectedItem() == null) {
+                        throw new Exception("Pilih kategori produk!");
+                    }
+                    int catId = getCategoryId(catCombo.getSelectedItem().toString());
 
-                service.updateProduct(id, code, name, catId, price, stock);
-                refresh();
-                JOptionPane.showMessageDialog(this, "Produk berhasil diupdate!");
+                    double price;
+                    try {
+                        price = parseIndonesianNumber(priceField.getText());
+                    } catch (NumberFormatException e) {
+                        throw new Exception("Format harga tidak valid! Harap isi dengan angka.");
+                    }
+                    if (price < 0) {
+                        throw new Exception("Harga produk tidak boleh negatif!");
+                    }
+
+                    int stock;
+                    try {
+                        stock = Integer.parseInt(stockField.getText().trim());
+                    } catch (NumberFormatException e) {
+                        throw new Exception("Format stok tidak valid! Harap isi dengan angka bulat.");
+                    }
+                    if (stock < 0) {
+                        throw new Exception("Stok produk tidak boleh negatif!");
+                    }
+
+                    service.updateProduct(id, code, name, catId, price, stock);
+                    refresh();
+                    JOptionPane.showMessageDialog(this, "Produk berhasil diupdate!");
+                } catch (Exception ex) {
+                    String msg = ex.getMessage();
+                    if (msg != null && msg.toLowerCase().contains("unique constraint failed")) {
+                        msg = "Kode produk '" + codeField.getText().trim().toUpperCase() + "' sudah terdaftar untuk produk lain!";
+                    }
+                    JOptionPane.showMessageDialog(this, "Error: " + msg, "Gagal Mengedit Produk", JOptionPane.ERROR_MESSAGE);
+                }
             }
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());

@@ -54,6 +54,22 @@ public class ProductDAO {
         return null;
     }
 
+    public List<Product> getByCategory(int categoryId) throws SQLException {
+        List<Product> list = new ArrayList<>();
+        String sql = "SELECT p.*, c.name AS category_name FROM products p " +
+                     "JOIN categories c ON p.category_id = c.id WHERE p.category_id = ? ORDER BY p.id";
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, categoryId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapProduct(rs));
+                }
+            }
+        }
+        return list;
+    }
+
     public Product getByCode(String code) throws SQLException {
         String sql = "SELECT p.*, c.name AS category_name FROM products p " +
                      "JOIN categories c ON p.category_id = c.id WHERE p.code = ?";
@@ -101,6 +117,16 @@ public class ProductDAO {
             ps.setInt(1, id);
             ps.executeUpdate();
         }
+    }
+
+    public String getMaxCode() throws SQLException {
+        String sql = "SELECT MAX(code) AS max_code FROM products";
+        try (Connection conn = DatabaseManager.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next()) return rs.getString("max_code");
+        }
+        return null;
     }
 
     public void updateStock(int id, int quantity) throws SQLException {
