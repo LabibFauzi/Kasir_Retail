@@ -40,6 +40,7 @@ public class TransactionPanel extends JPanel {
     private List<Category> categories;
     private int selectedCategoryId = -1;
     private List<JToggleButton> categoryChips;
+    private JPanel chipRow;
 
     private static final Color STOCK_HIGH  = new Color(0, 201, 167);
     private static final Color STOCK_LOW   = new Color(255, 184, 0);
@@ -96,6 +97,18 @@ public class TransactionPanel extends JPanel {
 
     public void setParentFrame(JFrame frame) {
         this.parentFrame = frame;
+    }
+
+    /** Muat ulang daftar kategori & produk — dipanggil setiap kali tab Transaksi dibuka,
+     *  supaya produk/kategori baru yang ditambahkan dari menu Produk & Kategori langsung terlihat. */
+    public void refresh() {
+        try {
+            categories = service.getAllCategories();
+        } catch (SQLException e) {
+            categories = new ArrayList<>();
+        }
+        populateCategoryChips();
+        loadProducts();
     }
 
     private JPanel createTopBar() {
@@ -194,18 +207,8 @@ public class TransactionPanel extends JPanel {
 
         JPanel chipRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
         chipRow.setBackground(ThemeManager.CARD_BG);
-        categoryChips = new ArrayList<>();
-
-        JToggleButton allChip = createCategoryChip("Semua", -1);
-        allChip.setSelected(true);
-        chipRow.add(allChip);
-        categoryChips.add(allChip);
-
-        for (Category cat : categories) {
-            JToggleButton chip = createCategoryChip(cat.getName(), cat.getId());
-            chipRow.add(chip);
-            categoryChips.add(chip);
-        }
+        this.chipRow = chipRow;
+        populateCategoryChips();
 
         chipRow.setPreferredSize(new Dimension(0, 30));
 
@@ -214,6 +217,26 @@ public class TransactionPanel extends JPanel {
         panel.add(chipRow, gbc);
 
         return panel;
+    }
+
+    private void populateCategoryChips() {
+        chipRow.removeAll();
+        categoryChips = new ArrayList<>();
+
+        JToggleButton allChip = createCategoryChip("Semua", -1);
+        allChip.setSelected(selectedCategoryId == -1);
+        chipRow.add(allChip);
+        categoryChips.add(allChip);
+
+        for (Category cat : categories) {
+            JToggleButton chip = createCategoryChip(cat.getName(), cat.getId());
+            chip.setSelected(selectedCategoryId == cat.getId());
+            chipRow.add(chip);
+            categoryChips.add(chip);
+        }
+
+        chipRow.revalidate();
+        chipRow.repaint();
     }
 
     private JToggleButton createCategoryChip(String name, int categoryId) {
@@ -711,8 +734,34 @@ public class TransactionPanel extends JPanel {
                 }
             } else if (x > cellW - 32) {
                 service.updateCartQuantity(row, item.getQuantity() + 1);
+            } else {
+                editQtyManually(row, item);
+                return;
             }
             refreshCart();
+        } catch (Exception ex) {
+            ToastNotification.showError(this, ex.getMessage());
+        }
+    }
+
+    private void editQtyManually(int row, CartItem item) {
+        String input = JOptionPane.showInputDialog(this,
+            "Jumlah " + item.getProduct().getName() + " (Stok tersedia: " + item.getProduct().getStock() + "):",
+            "Ubah Jumlah", JOptionPane.PLAIN_MESSAGE);
+        if (input == null) return;
+        input = input.trim();
+        if (input.isEmpty()) return;
+
+        try {
+            int newQty = Integer.parseInt(input);
+            if (newQty <= 0) {
+                handleDeleteClick(row);
+                return;
+            }
+            service.updateCartQuantity(row, newQty);
+            refreshCart();
+        } catch (NumberFormatException ex) {
+            ToastNotification.showError(this, "Jumlah harus berupa angka bulat!");
         } catch (Exception ex) {
             ToastNotification.showError(this, ex.getMessage());
         }

@@ -226,8 +226,18 @@ public class MasterPanel extends JPanel {
 
         gbc.gridx = 0; gbc.gridy = 0;
         panel.add(new JLabel("Kode:"), gbc);
+
+        JPanel codeRow = new JPanel(new BorderLayout(6, 0));
+        codeRow.setOpaque(false);
+        JButton btnScan = ThemeManager.createButton("Scan", ThemeManager.PRIMARY);
+        btnScan.setPreferredSize(new Dimension(80, 30));
+        btnScan.setToolTipText("Scan barcode pada kemasan produk dengan kamera");
+        btnScan.addActionListener(e -> openBarcodeScanForField(codeField));
+        codeRow.add(codeField, BorderLayout.CENTER);
+        codeRow.add(btnScan, BorderLayout.EAST);
+
         gbc.gridx = 1;
-        panel.add(codeField, gbc);
+        panel.add(codeRow, gbc);
 
         gbc.gridx = 0; gbc.gridy = 1;
         panel.add(new JLabel("Nama:"), gbc);
@@ -324,8 +334,18 @@ public class MasterPanel extends JPanel {
 
             gbc.gridx = 0; gbc.gridy = 0;
             panel.add(new JLabel("Kode:"), gbc);
+
+            JPanel codeRow = new JPanel(new BorderLayout(6, 0));
+            codeRow.setOpaque(false);
+            JButton btnScan = ThemeManager.createButton("Scan", ThemeManager.PRIMARY);
+            btnScan.setPreferredSize(new Dimension(80, 30));
+            btnScan.setToolTipText("Scan barcode pada kemasan produk dengan kamera");
+            btnScan.addActionListener(e -> openBarcodeScanForField(codeField));
+            codeRow.add(codeField, BorderLayout.CENTER);
+            codeRow.add(btnScan, BorderLayout.EAST);
+
             gbc.gridx = 1;
-            panel.add(codeField, gbc);
+            panel.add(codeRow, gbc);
 
             gbc.gridx = 0; gbc.gridy = 1;
             panel.add(new JLabel("Nama:"), gbc);
@@ -475,6 +495,14 @@ public class MasterPanel extends JPanel {
                 }
             }
         }
+    }
+
+    private void openBarcodeScanForField(JTextField targetField) {
+        Window owner = SwingUtilities.getWindowAncestor(this);
+        BarcodeCaptureDialog dialog = new BarcodeCaptureDialog(owner, code -> {
+            targetField.setText(code);
+        });
+        dialog.setVisible(true);
     }
 
     private void loadCategories(JComboBox<String> combo) {

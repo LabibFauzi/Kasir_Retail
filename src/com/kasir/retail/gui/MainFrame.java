@@ -6,7 +6,6 @@ import javax.swing.*;
 import java.awt.*;
 
 public class MainFrame extends JFrame {
-    private final KasirService service;
     private final CardLayout cardLayout = new CardLayout();
     private final JPanel contentPanel = new JPanel(cardLayout);
     private final User currentUser;
@@ -14,6 +13,7 @@ public class MainFrame extends JFrame {
     private TransactionPanel transactionPanel;
     private MasterPanel masterPanel;
     private ReportPanel reportPanel;
+    private UserPanel userPanel;
 
     private JPanel sidebar;
     private String currentTabName = "Transaksi";
@@ -24,7 +24,6 @@ public class MainFrame extends JFrame {
 
     public MainFrame(User user, KasirService service) {
         this.currentUser = user;
-        this.service = service;
         setTitle("Kasir Retail - " + user.getFullName() + " (" + user.getRole() + ")");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1300, 800);
@@ -48,6 +47,11 @@ public class MainFrame extends JFrame {
         contentPanel.add(transactionPanel, "Transaksi");
         contentPanel.add(masterPanel, "Produk & Kategori");
         contentPanel.add(reportPanel, "Laporan");
+
+        if (currentUser.isAdmin()) {
+            userPanel = new UserPanel(service, currentUser);
+            contentPanel.add(userPanel, "Pengguna");
+        }
 
         setLayout(new BorderLayout());
         add(createSidebar(), BorderLayout.WEST);
@@ -155,6 +159,7 @@ public class MainFrame extends JFrame {
             addMenuItem(sidebar, gbc, menuY++, "Transaksi", "Transaksi", "Transaksi".equalsIgnoreCase(currentTabName));
             addMenuItem(sidebar, gbc, menuY++, "Produk & Kategori", "Produk & Kategori", "Produk & Kategori".equalsIgnoreCase(currentTabName));
             addMenuItem(sidebar, gbc, menuY++, "Laporan", "Laporan", "Laporan".equalsIgnoreCase(currentTabName));
+            addMenuItem(sidebar, gbc, menuY++, "Pengguna", "Pengguna", "Pengguna".equalsIgnoreCase(currentTabName));
         } else {
             addMenuItem(sidebar, gbc, menuY++, "Transaksi", "Transaksi", "Transaksi".equalsIgnoreCase(currentTabName));
             addMenuItem(sidebar, gbc, menuY++, "Laporan", "Laporan", "Laporan".equalsIgnoreCase(currentTabName));
@@ -213,8 +218,10 @@ public class MainFrame extends JFrame {
             currentTabName = targetAction;
             setActiveMenu(wrapper);
             cardLayout.show(contentPanel, targetAction);
+            if (targetAction.equals("Transaksi")) transactionPanel.refresh();
             if (targetAction.equals("Produk & Kategori")) masterPanel.refresh();
             if (targetAction.equals("Laporan")) reportPanel.refresh();
+            if (targetAction.equals("Pengguna") && userPanel != null) userPanel.refresh();
         });
 
         wrapper.add(btn, BorderLayout.CENTER);
@@ -269,8 +276,10 @@ public class MainFrame extends JFrame {
             }
         }
 
+        if (tabName.equals("Transaksi")) transactionPanel.refresh();
         if (tabName.equals("Produk & Kategori")) masterPanel.refresh();
         if (tabName.equals("Laporan")) reportPanel.refresh();
+        if (tabName.equals("Pengguna") && userPanel != null) userPanel.refresh();
     }
 
     private JButton createLogoutButton() {

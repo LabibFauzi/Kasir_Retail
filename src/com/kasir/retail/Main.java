@@ -6,7 +6,6 @@ import com.kasir.retail.gui.MainFrame;
 import com.kasir.retail.gui.ThemeManager;
 import com.kasir.retail.model.User;
 import javax.swing.*;
-import java.awt.*;
 
 public class Main {
     public static void main(String[] args) {

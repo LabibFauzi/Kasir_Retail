@@ -6,7 +6,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.sql.SQLException;
 
 public class LoginDialog extends JDialog {
     private final UserDAO userDAO = new UserDAO();
@@ -32,7 +31,6 @@ public class LoginDialog extends JDialog {
 
         mainPanel.add(createHeaderPanel(), BorderLayout.NORTH);
         mainPanel.add(createFormPanel(), BorderLayout.CENTER);
-        mainPanel.add(createFooterPanel(), BorderLayout.SOUTH);
 
         add(mainPanel);
         setVisible(true);
@@ -173,18 +171,6 @@ public class LoginDialog extends JDialog {
         gbc.insets = new Insets(18, 0, 5, 0);
         gbc.gridy = 6;
         panel.add(loginButton, gbc);
-
-        return panel;
-    }
-
-    private JPanel createFooterPanel() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 12));
-        panel.setBackground(ThemeManager.BG);
-
-        JLabel infoLabel = new JLabel("<html><center>Demo: admin / admin123<br>atau kasir / kasir123</center></html>");
-        infoLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        infoLabel.setForeground(ThemeManager.TEXT_MUTED);
-        panel.add(infoLabel);
 
         return panel;
     }

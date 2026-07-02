@@ -22,11 +22,12 @@ import java.awt.event.ComponentEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Vector;
@@ -107,13 +108,13 @@ public class BarcodeScannerDialog extends JDialog {
             readerThread = new Thread(() -> {
                 while (running) {
                     try {
-                        HttpURLConnection conn = (HttpURLConnection) new URL(streamUrl).openConnection();
+                        HttpURLConnection conn = (HttpURLConnection) URI.create(streamUrl).toURL().openConnection();
                         conn.setConnectTimeout(5000);
                         conn.setReadTimeout(0);
                         conn.connect();
                         connected = true;
 
-                        try (InputStream in = conn.getInputStream()) {
+                        try (InputStream in = new BufferedInputStream(conn.getInputStream(), 16384)) {
                             ByteArrayOutputStream buf = new ByteArrayOutputStream(65536);
                             int lastByte = -1;
                             boolean foundSOI = false;
@@ -181,10 +182,16 @@ public class BarcodeScannerDialog extends JDialog {
 
         CameraPreviewPanel() {
             setBackground(Color.BLACK);
-            repaintTimer = new Timer(50, e -> repaint());
+            // Timer ini berjalan independen dari thread decoder, jadi preview tetap
+            // mulus (~30fps) meskipun proses pembacaan barcode di belakang sedang berat.
+            repaintTimer = new Timer(33, e -> {
+                if (currentFeed != null) {
+                    BufferedImage frame = currentFeed.getImage();
+                    if (frame != null) image = frame;
+                }
+                repaint();
+            });
         }
-
-        void setImage(BufferedImage img) { this.image = img; }
 
         void startPainting() { repaintTimer.start(); }
 
@@ -233,6 +240,10 @@ public class BarcodeScannerDialog extends JDialog {
     private final AtomicBoolean scanning = new AtomicBoolean(false);
     private Thread scannerThread;
     private final MultiFormatReader reader = new MultiFormatReader();
+
+    // Anti salah-baca: kode hanya dianggap valid jika terbaca SAMA berturut-turut
+    // sebanyak REQUIRED_MATCHES kali. Sekali ada pembacaan yang berbeda, hitungan diulang dari awal.
+    private static final int REQUIRED_MATCHES = 2;
 
     private List<Webcam> webcams;
     private static final String OPTION_IP_CAMERA = "IP Camera (Android / URL) ...";
@@ -641,6 +652,8 @@ public class BarcodeScannerDialog extends JDialog {
         scannerThread = new Thread(() -> {
             String lastBarcode = "";
             long lastScanTime = 0;
+            String pendingCode = null;
+            int matchCount = 0;
 
             while (scanning.get()) {
                 try {
@@ -654,8 +667,6 @@ public class BarcodeScannerDialog extends JDialog {
                         Thread.sleep(50);
                         continue;
                     }
-
-                    previewPanel.setImage(image);
 
                     LuminanceSource source = new BufferedImageLuminanceSource(image);
                     BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
@@ -680,6 +691,23 @@ public class BarcodeScannerDialog extends JDialog {
 
                     if (result != null) {
                         final String barcode = result.getText();
+
+                        if (barcode.equals(pendingCode)) {
+                            matchCount++;
+                        } else {
+                            pendingCode = barcode;
+                            matchCount = 1;
+                        }
+
+                        if (matchCount < REQUIRED_MATCHES) {
+                            Thread.sleep(100);
+                            continue;
+                        }
+
+                        // Sudah terkonfirmasi sama 5x berturut-turut, reset hitungan untuk scan berikutnya
+                        pendingCode = null;
+                        matchCount = 0;
+
                         long now = System.currentTimeMillis();
 
                         if (barcode.equals(lastBarcode) && (now - lastScanTime < 1500)) {
@@ -691,6 +719,10 @@ public class BarcodeScannerDialog extends JDialog {
                         lastScanTime = now;
 
                         processBarcodeResult(barcode);
+                    } else {
+                        // Pembacaan gagal di frame ini -> putuskan rangkaian validasi
+                        pendingCode = null;
+                        matchCount = 0;
                     }
 
                     Thread.sleep(150);

@@ -11,6 +11,7 @@ public class KasirService {
     private final ProductDAO productDAO;
     private final CategoryDAO categoryDAO;
     private final TransactionDAO transactionDAO;
+    private final UserDAO userDAO;
     private final List<CartItem> cart;
     private int invoiceCounter;
 
@@ -18,6 +19,7 @@ public class KasirService {
         this.productDAO = new ProductDAO();
         this.categoryDAO = new CategoryDAO();
         this.transactionDAO = new TransactionDAO();
+        this.userDAO = new UserDAO();
         this.cart = new ArrayList<>();
         this.invoiceCounter = loadInvoiceCounter();
     }
@@ -199,6 +201,33 @@ public class KasirService {
 
     public double getTotalSalesToday() throws SQLException {
         return transactionDAO.getTotalSalesToday();
+    }
+
+    // User operations
+    public List<User> getAllUsers() throws SQLException {
+        return userDAO.getAll();
+    }
+
+    public User getUserById(int id) throws SQLException {
+        return userDAO.getById(id);
+    }
+
+    public void addUser(String username, String password, String role, String fullName) throws SQLException {
+        User u = new User(0, username, password, role, fullName);
+        userDAO.insert(u);
+    }
+
+    public void updateUser(int id, String username, String role, String fullName) throws SQLException {
+        User u = new User(id, username, null, role, fullName);
+        userDAO.update(u);
+    }
+
+    public void changeUserPassword(int id, String newPassword) throws SQLException {
+        userDAO.changePassword(id, newPassword);
+    }
+
+    public void deleteUser(int id) throws SQLException {
+        userDAO.delete(id);
     }
 
     private String generateInvoice() {

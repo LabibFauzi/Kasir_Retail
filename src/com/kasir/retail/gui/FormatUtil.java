@@ -1,7 +1,6 @@
 package com.kasir.retail.gui;
 
 import java.text.NumberFormat;
-import java.util.Locale;
 
 public class FormatUtil {
 
